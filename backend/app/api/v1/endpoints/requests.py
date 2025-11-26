@@ -88,6 +88,7 @@ async def create_request(
 @router.get("/", response_model=ConsultationRequestList)
 async def list_requests(
     state: Optional[str] = Query(None, description="Filter by state (pending, responded, etc.)"),
+    updated_after: Optional[datetime] = Query(None, description="Only return requests updated after this timestamp (for polling)"),
     limit: int = Query(20, ge=1, le=100, description="Number of results per page"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     current_user: User = Depends(get_current_user),
@@ -100,12 +101,19 @@ async def list_requests(
     Example:
         GET /api/v1/requests?state=pending&limit=20&offset=0
         Authorization: Bearer <jwt_token>
+
+    For differential polling:
+        GET /api/v1/requests?updated_after=2024-01-01T12:00:00Z
     """
     query = db.query(ConsultationRequest)
 
     # Filter by state if provided
     if state:
         query = query.filter(ConsultationRequest.state == state)
+
+    # Filter by updated_after for differential polling
+    if updated_after:
+        query = query.filter(ConsultationRequest.updated_at > updated_after)
 
     # Get total count
     total = query.count()

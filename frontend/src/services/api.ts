@@ -131,9 +131,10 @@ export const authApi = {
 
 // Requests API
 export const requestsApi = {
-  list: async (state?: string, limit = 20, offset = 0) => {
+  list: async (state?: string, limit = 20, offset = 0, updatedAfter?: string) => {
     const params = new URLSearchParams()
     if (state) params.append('state', state)
+    if (updatedAfter) params.append('updated_after', updatedAfter)
     params.append('limit', limit.toString())
     params.append('offset', offset.toString())
 
