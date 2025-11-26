@@ -6,6 +6,7 @@
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { Navigation } from '@/components/Navigation'
 
 // Pages
 import Login from '@/pages/Login'
@@ -14,7 +15,7 @@ import Dashboard from '@/pages/Dashboard'
 import RequestDetail from '@/pages/RequestDetail'
 import Admin from '@/pages/Admin'
 
-// Protected Route wrapper
+// Protected Route wrapper with Navigation
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth()
 
@@ -30,7 +31,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  return <>{children}</>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <main>{children}</main>
+    </div>
+  )
 }
 
 function App() {
