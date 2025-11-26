@@ -82,7 +82,7 @@ cd frontend
 # Install dependencies
 npm install
 
-# Create .env file
+# Create .env file (optional - defaults work for local dev)
 cp .env.example .env
 
 # Start frontend
@@ -90,6 +90,16 @@ npm run dev
 ```
 
 Frontend running at: http://localhost:3000
+
+**Available Pages:**
+- `/login` - Login page (test credentials displayed)
+- `/register` - User registration
+- `/dashboard` - Main dashboard with request list and filtering
+- `/requests/:id` - Request detail page with response form
+- `/admin` - API key management
+
+**Default Configuration:**
+The frontend is pre-configured to connect to the backend at `http://localhost:8000`. No `.env` file is required for local development.
 
 ---
 
@@ -252,6 +262,108 @@ The easiest way to test the API is through Swagger UI:
    - Get key from `/api-keys` or test data
    - Click "Authorize", paste key, click "Authorize"
 6. Try endpoints by clicking "Try it out"
+
+---
+
+## 🖥️ Using the Frontend UI
+
+The frontend provides a complete web interface for human reviewers to manage consultation requests.
+
+### 1. Login
+
+1. Open http://localhost:3000
+2. You'll be redirected to the login page
+3. Use test credentials (displayed on the page):
+   - Email: `reviewer@example.com`
+   - Password: `password123`
+4. Click "Sign In"
+5. You'll be redirected to the dashboard
+
+### 2. Dashboard
+
+The dashboard shows all consultation requests with:
+
+**Features:**
+- **State Filters**: Toggle between "Pending", "Responded", and "All" requests
+- **Request Cards**: Each card shows:
+  - Title and description
+  - State badge (pending, responded, etc.)
+  - Created timestamp
+  - Metadata (workflow_id, checkpoint_id)
+- **Click to View**: Click any card to see full details
+
+**What You'll See:**
+- After running `create_test_data.py`, you'll see 2 sample requests
+- Pending requests have a yellow "pending" badge
+- Responded requests show a green "responded" badge
+
+### 3. Request Detail Page
+
+Click any request to see:
+
+**Left Column:**
+- **Description**: Full request description from the agent
+- **Context**: JSON context with code diffs, risk levels, etc.
+- **Response Form**: Submit your decision (only for pending requests)
+  - Radio buttons: Approve, Reject, Request Changes
+  - Optional comment field for feedback
+- **Existing Response**: Shows your response if already submitted
+
+**Right Column:**
+- **Status**: Current state, timestamps, timeout info
+- **Metadata**: workflow_id, checkpoint_id, agent_id
+- **Request ID**: UUID for reference
+
+**How to Respond:**
+1. Review the context carefully
+2. Select a decision: Approve, Reject, or Request Changes
+3. Add optional comments
+4. Click "Submit Response"
+5. You'll be redirected back to the dashboard
+6. The webhook is called automatically in the background
+
+### 4. Admin Page
+
+Access via the navigation or directly at `/admin`:
+
+**Features:**
+- **Create API Keys**: Generate keys for agents
+  - Enter key name (e.g., "production-agent")
+  - Optional description
+  - Raw key is shown ONCE - copy and save it!
+- **List Keys**: View all API keys
+  - Shows name, description, created date
+  - Masked key preview
+  - Active/revoked status
+- **Revoke Keys**: Disable compromised keys
+
+**Creating a Key:**
+1. Go to `/admin`
+2. Fill in "Key Name" (required)
+3. Add description (optional)
+4. Click "Create API Key"
+5. **IMPORTANT**: Copy the raw key shown in the alert
+6. Save it securely - you won't see it again!
+
+### 5. Register New Users
+
+Want to add more reviewers?
+
+1. Go to `/register`
+2. Enter email, name, password
+3. Confirm password
+4. Click "Create Account"
+5. You'll be auto-logged in and redirected to dashboard
+
+### 6. Logout
+
+Currently, logout is manual:
+- Open browser developer tools (F12)
+- Go to Application > Local Storage
+- Delete the `access_token` entry
+- Refresh the page
+
+(TODO: Add logout button to UI)
 
 ---
 
@@ -473,26 +585,28 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## 📚 Next Steps
 
-1. **Add Email Notifications**
+1. **Frontend Enhancements**
+   - Add logout button to UI
+   - Add navigation header with user menu
+   - Real-time updates with WebSocket or polling
+   - Add request creation form for testing
+
+2. **Add Email Notifications**
    - Notify humans when new requests arrive
    - Use Resend, SendGrid, or AWS SES
 
-2. **Add Slack Integration**
+3. **Add Slack Integration**
    - Post to Slack channel when requests are created
    - Allow responding via Slack
 
-3. **Add Timeout Monitoring**
+4. **Add Timeout Monitoring**
    - Background job to check for expired requests
    - Automatic timeout callbacks
 
-4. **Add Metrics**
+5. **Add Metrics & Monitoring**
    - Request count, response time
    - Webhook success rate
    - Integrate Prometheus/Grafana
-
-5. **Build Frontend UI**
-   - React dashboard for humans
-   - Real-time updates with WebSocket
 
 ---
 
