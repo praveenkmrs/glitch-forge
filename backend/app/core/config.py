@@ -45,6 +45,21 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
 
+    # Email Configuration
+    EMAIL_ENABLED: bool = False  # Set to True to enable email notifications
+    EMAIL_PROVIDER: str = "resend"  # "resend" or "sendgrid"
+
+    # Resend settings
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "noreply@localhost"
+
+    # SendGrid settings
+    SENDGRID_API_KEY: str = ""
+    SENDGRID_FROM_EMAIL: str = "noreply@localhost"
+
+    # Frontend URL (for email links)
+    FRONTEND_URL: str = "http://localhost:3000"
+
     @validator("CORS_ORIGINS", pre=True)
     def parse_cors_origins(cls, v: str | List[str]) -> List[str]:
         """Parse CORS origins from string or list."""

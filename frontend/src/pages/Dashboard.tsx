@@ -1,22 +1,24 @@
 /**
  * Dashboard Page
  *
- * Shows list of consultation requests with filtering.
+ * Shows list of consultation requests with filtering and auto-refresh polling.
  */
 
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '@/context/AuthContext'
 import { requestsApi, ConsultationRequest } from '@/services/api'
+import { usePolling } from '@/hooks/usePolling'
 
 export default function Dashboard() {
-  const { user, logout } = useAuth()
   const [requests, setRequests] = useState<ConsultationRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<string>('pending')
   const [total, setTotal] = useState(0)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const [hasNewUpdates, setHasNewUpdates] = useState(false)
 
+  // Load initial data
   useEffect(() => {
     loadRequests()
   }, [filter])
@@ -29,11 +31,49 @@ export default function Dashboard() {
       const data = await requestsApi.list(filter || undefined)
       setRequests(data.items)
       setTotal(data.total)
+
+      // Update last updated timestamp for differential polling
+      if (data.items.length > 0) {
+        const mostRecent = data.items.reduce((latest, req) => {
+          return new Date(req.updated_at) > new Date(latest) ? req.updated_at : latest
+        }, data.items[0].updated_at)
+        setLastUpdated(mostRecent)
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load requests')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Polling for updates (differential)
+  const { isPolling } = usePolling({
+    fn: async () => {
+      if (!lastUpdated) return null
+
+      // Only fetch requests updated after last poll
+      const data = await requestsApi.list(filter || undefined, 20, 0, lastUpdated)
+
+      if (data.items.length > 0) {
+        // New updates found!
+        setHasNewUpdates(true)
+
+        // Update last updated timestamp
+        const mostRecent = data.items.reduce((latest, req) => {
+          return new Date(req.updated_at) > new Date(latest) ? req.updated_at : latest
+        }, data.items[0].updated_at)
+        setLastUpdated(mostRecent)
+      }
+
+      return data
+    },
+    interval: 10000, // Poll every 10 seconds
+    enabled: !!lastUpdated, // Only poll after initial load
+  })
+
+  const refreshNow = () => {
+    setHasNewUpdates(false)
+    loadRequests()
   }
 
   const getStateColor = (state: string) => {
@@ -56,27 +96,44 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container-mobile py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-primary-600">Consultation Requests</h1>
-            <p className="text-sm text-gray-600">Welcome, {user?.name || user?.email}</p>
+    <div className="container-mobile py-8">
+      {/* Update Notification Banner */}
+      {hasNewUpdates && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <svg
+              className="h-5 w-5 text-blue-400 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p className="text-sm text-blue-800">
+              New updates available{isPolling && ' (checking for updates...)'}
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Link to="/admin" className="btn-secondary text-sm">
-              Admin
-            </Link>
-            <button onClick={logout} className="btn-secondary text-sm">
-              Logout
-            </button>
-          </div>
+          <button
+            onClick={refreshNow}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Refresh Now
+          </button>
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <main className="container-mobile py-8">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Consultation Requests</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          {total} total request{total !== 1 ? 's' : ''}
+        </p>
+      </div>
         {/* Filters */}
         <div className="mb-6 flex flex-wrap gap-2">
           <button
@@ -182,7 +239,6 @@ export default function Dashboard() {
             ))}
           </div>
         )}
-      </main>
     </div>
   )
 }
